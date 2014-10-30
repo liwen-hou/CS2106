@@ -7,6 +7,8 @@ public class VMManager {
 	private static final int PT_SIZE = 1024;
 	private static final int PAGE_SIZE = 512;
 	private static final int FRMAE_SIZE = 512;
+	private static final int READ_OPERATION = 0;
+	private static final int WRITE_OPERATION = 1;
 	
 //	private static Integer[] ST = new Integer[512];
 	private static Integer[] PM = new Integer[524288];
@@ -20,14 +22,14 @@ public class VMManager {
 			initializeBitMap();
 			
 			Scanner sc = new Scanner(new File(filename));
-			if(sc.hasNext()){
-				String STEntriesString = sc.next(); 
+			if(sc.hasNextLine()){
+				String STEntriesString = sc.nextLine(); 
 				System.out.println("STEntriesString is " + STEntriesString);
 				initializeWithSTEntries(STEntriesString);
 			}
 			
-			if(sc.hasNext()){
-				String PTEntriesString = sc.next();
+			if(sc.hasNextLine()){
+				String PTEntriesString = sc.nextLine();
 				System.out.println("PTEntriesString is " + PTEntriesString);
 				
 			}
@@ -151,13 +153,49 @@ public class VMManager {
 			updatePT(PTAddress,PTIndex,PGAddress);
 		}
 	}
+	
+	private static void translate(String VAFilename){
+		try {
+			Scanner sc = new Scanner(new File(VAFilename));
+			
+			if(sc.hasNextLine()){
+				String VAEntriesString = sc.nextLine();
+				
+				String[] VAEntries = VAEntriesString.split("\\s+");
+				for(int i=0;i<VAEntries.length; i+=2){
+					int operationIndicator = Integer.parseInt(VAEntries[i]);
+					int va = Integer.parseInt(VAEntries[i+1]);
+				}
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private static void readVA(int va){
+		
+	}
+	
+	private static void writeVA(int va){
+		
+	}
+	
+	private static void executeTranslation(int operationIndicator,int va){
+		if(operationIndicator == READ_OPERATION){
+			
+		}else if(operationIndicator == WRITE_OPERATION){
+			
+		}
+	}
 	public static void main(String[] args){
 		//TODO: check the validation of the arguments
 		
 		String initFilename = args[0];
+		String VAFilename = args[1];
 		
 		initialize(initFilename);
 		
-		
+		translate(VAFilename);
 	}
 }
