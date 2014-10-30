@@ -8,21 +8,28 @@ public class VMManager {
 	private static final int PAGE_SIZE = 512;
 	private static final int FRMAE_SIZE = 512;
 	
-	private static Integer[] ST = new Integer[512];
+//	private static Integer[] ST = new Integer[512];
 	private static Integer[] PM = new Integer[524288];
 	private static Integer[] BitMap = new Integer[32];
 	private static Integer[] MASK = new Integer[32];
 	
 	public static void initialize(String filename){
 		try {
-			initializeBitMap();
 			initalizeMask();
+
+			initializeBitMap();
 			
 			Scanner sc = new Scanner(new File(filename));
 			if(sc.hasNext()){
 				String STEntriesString = sc.next(); 
 				System.out.println("STEntriesString is " + STEntriesString);
-				initalizeWithSTEntries(STEntriesString);
+				initializeWithSTEntries(STEntriesString);
+			}
+			
+			if(sc.hasNext()){
+				String PTEntriesString = sc.next();
+				System.out.println("PTEntriesString is " + PTEntriesString);
+				
 			}
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -31,7 +38,7 @@ public class VMManager {
 	}
 	
 	private static void initializeBitMap(){
-		BitMap[0] = 1;
+		BitMap[0] = MASK[0];
 	}
 	
 	private static void initalizeMask(){
@@ -85,21 +92,64 @@ public class VMManager {
 		return -1;
 	}
 	
-	private static void updateST(int STIndex,int PTAddress){
-		ST[STIndex] = PTAddress;
+	private static void freeBitMap(int frameIndex){
+		int row = frameIndex / 32;
+		int col = frameIndex % 32;
+		
+		BitMap[row] = BitMap[row] & (~MASK[col]);
 	}
 	
-	private static void initalizeWithSTEntries(String STEntriesString){
-		String[] STEntriesPairs = STEntriesString.split("\\s+");
+	private static void occupyBitMap(int frameIndex){
+		int row = frameIndex / 32;
+		int col = frameIndex % 32;
+		
+		BitMap[row] = BitMap[row] | MASK[col];
+	}
+	
+	private static void updateST(int STIndex,int PTAddress){
+		PM[STIndex] = PTAddress;
+		
+		int frameIndex = PTAddress/512;
+		occupyBitMap(frameIndex);
+		occupyBitMap(frameIndex+1);
+	}
+	
+	private static int getPTAddress(int STIndex){
+		return PM[STIndex];
+	}
+	
+	private static void updatePT(int PTAddress,int PTIndex, int PGAddress){
+		PM[PTAddress+PTIndex] = PGAddress;
+		
+		int frameIndex = PGAddress/512;
+		occupyBitMap(frameIndex);
+	}
+		
+	private static void initializeWithSTEntries(String STEntriesString){
+		String[] STEntries = STEntriesString.split("\\s+");
 		
 		//TODO: check whether the number of the ST is even
 		
-		for(int i=0;i<STEntriesPairs.length;i+=2){
-			int STIndex = Integer.parseInt(STEntriesPairs[i]);
-			int PTAddress = Integer.parseInt(STEntriesPairs[i+1]);
+		for(int i=0;i<STEntries.length;i+=2){
+			int STIndex = Integer.parseInt(STEntries[i]);
+			int PTAddress = Integer.parseInt(STEntries[i+1]);
 			updateST(STIndex,PTAddress);
 		}
+	}
+	
+	private static void initializeWithPTEntries(String PTEntriesString){
+		String[] PTEntries = PTEntriesString.split("\\s+");
 		
+		//TODO: check whether the number of the ST is a multiple of 3
+		
+		for(int i=0;i<PTEntries.length;i+=3){
+			int PTIndex = Integer.parseInt(PTEntries[i]);
+			int STIndex = Integer.parseInt(PTEntries[i+1]);
+			int PGAddress = Integer.parseInt(PTEntries[i+2]);
+			
+			int PTAddress = getPTAddress(STIndex);
+			updatePT(PTAddress,PTIndex,PGAddress);
+		}
 	}
 	public static void main(String[] args){
 		//TODO: check the validation of the arguments
