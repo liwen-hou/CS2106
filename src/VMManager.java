@@ -6,12 +6,12 @@ public class VMManager {
 	private static final int ST_SIZE = 512;
 	private static final int PT_SIZE = 1024;
 	private static final int PAGE_SIZE = 512;
-	private static final int FRMAE_SIZE = 512;
+	private static final int FRAME_SIZE = 512;
 	private static final int READ_OPERATION = 0;
 	private static final int WRITE_OPERATION = 1;
 	
 //	private static Integer[] ST = new Integer[512];
-	private static Integer[] PM = new Integer[524288];
+	private static int[] PM = new int[524288];
 	private static Integer[] BitMap = new Integer[32];
 	private static Integer[] MASK = new Integer[32];
 	
@@ -31,7 +31,7 @@ public class VMManager {
 			if(sc.hasNextLine()){
 				String PTEntriesString = sc.nextLine();
 				System.out.println("PTEntriesString is " + PTEntriesString);
-				
+				initializeWithPTEntries(PTEntriesString);
 			}
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -51,7 +51,9 @@ public class VMManager {
 		}
 	}
 	
+	//Return the frame index in the Physical Memory
 	private static int findNextEmptyFrame(){
+		
 		for(int i=0;i<32;i++){
 			for(int j=0;j<32;j++){
 				int test = BitMap[i] & MASK[j];
@@ -165,6 +167,7 @@ public class VMManager {
 				for(int i=0;i<VAEntries.length; i+=2){
 					int operationIndicator = Integer.parseInt(VAEntries[i]);
 					int va = Integer.parseInt(VAEntries[i+1]);
+					executeTranslation(operationIndicator,va);
 				}
 			}
 		} catch (FileNotFoundException e) {
@@ -174,18 +177,99 @@ public class VMManager {
 	}
 	
 	private static void readVA(int va){
+		System.out.println("Read VA" + va);
+		System.out.println(Integer.toBinaryString(va));
+		System.out.println(Integer.toBinaryString(parseSTIndex(va)));
+		System.out.println(Integer.toBinaryString(parsePTIndex(va)));
+		System.out.println(Integer.toBinaryString(parsePGIndex(va)));
+		
+		int STIndex = parseSTIndex(va);
+		int PTIndex = parsePTIndex(va);
+		int PGIndex = parsePGIndex(va);
+		
+		int PTAddress = accessST(STIndex);
+		if(PTAddress == -1){
+			System.out.println("pf");
+		}else if(PTAddress == 0){
+			System.out.println("err");
+		}else if(PTAddress > 0){
+			int PGAddress = accessPT(PTAddress,PTIndex);
+			if(PGAddress == -1){
+				System.out.println("pf");
+			}else if(PGAddress == 0){
+				System.out.println("err");
+			}else if(PGAddress > 0){
+				System.out.println(PGAddress + PGIndex);
+			}
+		}
 		
 	}
 	
 	private static void writeVA(int va){
+		System.out.println("Write VA " + va);
+		System.out.println(Integer.toBinaryString(va));
+		System.out.println(Integer.toBinaryString(parseSTIndex(va)));
+		System.out.println(Integer.toBinaryString(parsePTIndex(va)));
+		System.out.println(Integer.toBinaryString(parsePGIndex(va)));
 		
+		int STIndex = parseSTIndex(va);
+		int PTIndex = parsePTIndex(va);
+		int PGIndex = parsePGIndex(va);
+		
+		int PTAddress = accessST(STIndex);
+		if(PTAddress == -1){
+			System.out.println("pf");
+		}else if(PTAddress == 0){
+			int PTFirstFrame = findNextTwoEmptyFrames();
+			int newPTAddress = PTFirstFrame * FRAME_SIZE;
+			updateST(STIndex,PTFirstFrame * FRAME_SIZE);
+			
+			int PGFrame = findNextEmptyFrame();
+			int newPGAddress = PGFrame * FRAME_SIZE;
+			updatePT(newPTAddress,PTIndex,newPGAddress);
+			
+			System.out.println(newPGAddress);
+		}else if(PTAddress > 0){
+			int PGAddress = accessPT(PTAddress,PTIndex);
+			if(PGAddress == -1){
+				System.out.println("pf");
+			}else if(PGAddress == 0){
+				int PGFrame = findNextEmptyFrame();
+				int newPGAddress = PGFrame * FRAME_SIZE;
+				updatePT(PTAddress,PTIndex,newPGAddress);
+				
+				System.out.println(newPGAddress);
+			}else if(PGAddress > 0){
+				System.out.println(PGAddress + PGIndex);
+			}
+		}
+	}
+	
+	private static int accessST(int STIndex){
+		return PM[STIndex];
+	}
+	
+	private static int accessPT(int PTAddress,int PTIndex){
+		return PM[PTAddress + PTIndex];
+	}
+	
+	private static int parseSTIndex(int va){
+		return (va & 0x0FF80000) >> 19;
+	}
+	
+	private static int parsePTIndex(int va){
+		return (va & 0x0007FE00) >> 9;
+	}
+	
+	private static int parsePGIndex(int va){
+		return va & 0x000001FF;
 	}
 	
 	private static void executeTranslation(int operationIndicator,int va){
 		if(operationIndicator == READ_OPERATION){
-			
+			readVA(va);
 		}else if(operationIndicator == WRITE_OPERATION){
-			
+			writeVA(va);
 		}
 	}
 	public static void main(String[] args){
